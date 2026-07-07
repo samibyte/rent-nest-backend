@@ -1,0 +1,54 @@
+import dotenv from "dotenv";
+
+dotenv.config();
+
+interface EnvConfig {
+  NODE_ENV: string;
+  PORT: string;
+  DATABASE_URL: string;
+  ACCESS_TOKEN_SECRET: string;
+  REFRESH_TOKEN_SECRET: string;
+  ACCESS_TOKEN_EXPIRES_IN: string;
+  REFRESH_TOKEN_EXPIRES_IN: string;
+  STRIPE: {
+    STRIPE_SECRET_KEY: string;
+    STRIPE_WEBHOOK_SECRET: string;
+  };
+}
+
+const loadEnvVariables = (): EnvConfig => {
+  const requireEnvVariable = [
+    "NODE_ENV",
+    "DATABASE_URL",
+    "ACCESS_TOKEN_SECRET",
+    "REFRESH_TOKEN_SECRET",
+    "ACCESS_TOKEN_EXPIRES_IN",
+    "REFRESH_TOKEN_EXPIRES_IN",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+  ];
+
+  requireEnvVariable.forEach((variable) => {
+    if (!process.env[variable]) {
+      throw new Error(
+        `Environment variable ${variable} is required but not set in .env file.`,
+      );
+    }
+  });
+
+  return {
+    NODE_ENV: process.env.NODE_ENV as string,
+    PORT: process.env.PORT as string,
+    DATABASE_URL: process.env.DATABASE_URL as string,
+    ACCESS_TOKEN_SECRET: process.env.ACCESS_TOKEN_SECRET as string,
+    REFRESH_TOKEN_SECRET: process.env.REFRESH_TOKEN_SECRET as string,
+    ACCESS_TOKEN_EXPIRES_IN: process.env.ACCESS_TOKEN_EXPIRES_IN as string,
+    REFRESH_TOKEN_EXPIRES_IN: process.env.REFRESH_TOKEN_EXPIRES_IN as string,
+    STRIPE: {
+      STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY as string,
+      STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET as string,
+    },
+  };
+};
+
+export const envVars = loadEnvVariables();
