@@ -6,6 +6,7 @@ import { UserRole, UserStatus } from "../../../generated/prisma/enums.js";
 import { tokenUtils } from "../../utils/token.js";
 import AppError from "../../errorHelpers/AppError.js";
 import status from "http-status";
+import { IRequestUser } from "../../interfaces/requestUser.interface.js";
 
 const registerUser = async (payload: IRegisterUserPayload) => {
   const { name, email, password, phone, avatar, role } = payload;
@@ -55,7 +56,10 @@ const loginUser = async (payload: ILoginUser) => {
   });
 
   if (user.status === "BANNED") {
-    throw new Error("Your account has been banned. Please contact support.");
+    throw new AppError(
+      status.FORBIDDEN,
+      "Your account has been banned. Please contact support.",
+    );
   }
 
   const isPasswordMatched = await bcrypt.compare(password, user.password);
@@ -81,7 +85,25 @@ const loginUser = async (payload: ILoginUser) => {
   };
 };
 
-export const userService = {
+const getMe = async (user: IRequestUser) => {
+  const userExists = await prisma.user.findUnique({
+    where: {
+      id: user.id,
+    },
+    omit: {
+      password: true,
+    },
+  });
+
+  if (!userExists) {
+    throw new AppError(status.NOT_FOUND, "User not found");
+  }
+
+  return userExists;
+};
+
+export const authService = {
   registerUser,
   loginUser,
+  getMe,
 };
