@@ -151,7 +151,7 @@ const confirmPayment = async (
     );
   }
 
-  // Guard against re-confirmation
+  // Guard: only PENDING payments can be confirmed
   if (payment.status !== PaymentStatus.PENDING) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
@@ -159,7 +159,7 @@ const confirmPayment = async (
     );
   }
 
-  // Retrieve Stripe Checkout Session to verify payment status
+  // Verify with Stripe before touching the DB
   const session = await stripe.checkout.sessions.retrieve(transactionId);
   if (session.payment_status !== "paid") {
     throw new AppError(
@@ -168,15 +168,33 @@ const confirmPayment = async (
     );
   }
 
-  // Atomically mark payment COMPLETED and rental ACTIVE
+  // Wrap status check + update in a transaction to eliminate TOCTOU race.
+  // The conditional update acts as an optimistic lock — if another request already
+  // changed the status away from PENDING, the update returns 0 rows and we abort.
   const confirmed = await prisma.$transaction(async (tx) => {
-    const updated = await tx.payment.update({
-      where: { id: payment.id },
+    const updated = await tx.payment.updateMany({
+      where: { id: payment.id, status: PaymentStatus.PENDING },
       data: {
         status: PaymentStatus.COMPLETED,
         paidAt: new Date(),
         paymentGatewayData: session as any,
       },
+    });
+
+    if (updated.count === 0) {
+      throw new AppError(
+        httpStatus.CONFLICT,
+        "Payment was already processed by another request.",
+      );
+    }
+
+    await tx.rentalRequest.update({
+      where: { id: payment.rentalRequestId },
+      data: { status: RentalStatus.ACTIVE },
+    });
+
+    return tx.payment.findUnique({
+      where: { id: payment.id },
       include: {
         rentalRequest: {
           include: {
@@ -187,13 +205,6 @@ const confirmPayment = async (
         },
       },
     });
-
-    await tx.rentalRequest.update({
-      where: { id: payment.rentalRequestId },
-      data: { status: RentalStatus.ACTIVE },
-    });
-
-    return updated;
   });
 
   return confirmed;
