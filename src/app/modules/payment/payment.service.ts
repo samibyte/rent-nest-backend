@@ -3,6 +3,7 @@ import httpStatus from "http-status";
 import Stripe from "stripe";
 import { prisma } from "../../lib/prisma.js";
 import { stripe } from "../../config/stripe.config.js";
+import { envVars } from "../../config/env.js";
 import AppError from "../../errorHelpers/AppError.js";
 import {
   PaymentMethod,
@@ -100,8 +101,8 @@ const createPayment = async (
     },
     success_url:
       successUrl ||
-      `http://localhost:3000/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: cancelUrl || `http://localhost:3000/payment/cancel`,
+      `${envVars.FRONTEND_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: cancelUrl || `${envVars.FRONTEND_URL}/payment/cancel`,
   });
 
   // 7. Update transactionId in our DB to match Stripe checkout session ID
@@ -271,9 +272,8 @@ const handlerStripeWebhookEvent = async (event: Stripe.Event) => {
       );
       break;
     }
-    case "checkout.session.expired":
-    case "payment_intent.payment_failed": {
-      const session = event.data.object as any;
+    case "checkout.session.expired": {
+      const session = event.data.object as Stripe.Checkout.Session;
       const paymentId = session.metadata?.paymentId;
 
       if (paymentId) {
@@ -281,11 +281,19 @@ const handlerStripeWebhookEvent = async (event: Stripe.Event) => {
           where: { id: paymentId },
           data: {
             status: PaymentStatus.FAILED,
+            stripeEventId: event.id, // Idempotency guard for retries
             paymentGatewayData: session as any,
           },
         });
-        console.log(`Marked payment ${paymentId} as FAILED due to Stripe event: ${event.type}`);
+        console.log(`Marked payment ${paymentId} as FAILED due to expired checkout session.`);
       }
+      break;
+    }
+    case "payment_intent.payment_failed": {
+      // PaymentIntent events don't carry our paymentId metadata (set on the
+      // Checkout Session). No actionable update can be made here; the
+      // checkout.session.expired event covers the user-facing failure case.
+      console.log(`Received payment_intent.payment_failed (${event.id}) — no action taken.`);
       break;
     }
     default:

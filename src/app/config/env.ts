@@ -11,6 +11,7 @@ interface EnvConfig {
   ACCESS_TOKEN_EXPIRES_IN: string;
   REFRESH_TOKEN_EXPIRES_IN: string;
   BCRYPT_SALT_ROUNDS: string;
+  FRONTEND_URL: string;
   STRIPE: {
     STRIPE_SECRET_KEY: string;
     STRIPE_WEBHOOK_SECRET: string;
@@ -47,6 +48,7 @@ const loadEnvVariables = (): EnvConfig => {
     ACCESS_TOKEN_EXPIRES_IN: process.env.ACCESS_TOKEN_EXPIRES_IN as string,
     REFRESH_TOKEN_EXPIRES_IN: process.env.REFRESH_TOKEN_EXPIRES_IN as string,
     BCRYPT_SALT_ROUNDS: process.env.BCRYPT_SALT_ROUNDS as string,
+    FRONTEND_URL: process.env.FRONTEND_URL || "http://localhost:3000",
     STRIPE: {
       STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY as string,
       STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET as string,
