@@ -5,6 +5,8 @@ import { IndexRoutes } from "./app/router/index.js";
 import { globalErrorHandler } from "./app/middlewares/globalErrorHandler.js";
 import { notFound } from "./app/middlewares/notFound.js";
 
+import { paymentController } from "./app/modules/payment/payment.controller.js";
+
 const app: Application = express();
 
 app.use(
@@ -14,6 +16,13 @@ app.use(
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
+);
+
+// Register Stripe Webhook route requiring raw body before express.json()
+app.post(
+  "/api/v1/payments/webhook",
+  express.raw({ type: "application/json" }),
+  paymentController.handleStripeWebhookEvent,
 );
 
 // Middleware to parse JSON bodies

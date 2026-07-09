@@ -13,6 +13,9 @@ model Payment {
   userId          String
   user            User            @relation(fields: [userId], references: [id] )
 
+  stripeEventId      String?         @unique
+  paymentGatewayData Json?
+
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
