@@ -11,6 +11,10 @@ import { IRequestUser } from "../../interfaces/requestUser.interface.js";
 const registerUser = async (payload: IRegisterUserPayload) => {
   const { name, email, password, phone, avatar, role } = payload;
 
+  if (role !== UserRole.TENANT && role !== UserRole.LANDLORD) {
+    throw new AppError(status.BAD_REQUEST, "Invalid role. Only TENANT or LANDLORD can register.");
+  }
+
   const userExists = await prisma.user.findUnique({
     where: { email },
   });
