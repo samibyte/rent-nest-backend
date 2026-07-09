@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "packageManager": "pnpm@11.10.0",
   "scripts": {
     "start": "node dist/server.js",
     "build": "tsc",
@@ -20,13 +21,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "devEngines": {
-    "packageManager": {
-      "name": "pnpm",
-      "version": "^11.9.0",
-      "onFail": "download"
-    }
-  },
+
   "type": "module",
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",
