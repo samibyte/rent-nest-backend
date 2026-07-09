@@ -1,5 +1,5 @@
 import { JwtPayload } from "jsonwebtoken";
-import { UserRole } from "../../generated/prisma/enums.js";
+import { UserRole, UserStatus } from "../../generated/prisma/enums.js";
 import { envVars } from "../config/env.js";
 import { catchAsync } from "../shared/catchAsync.js";
 import { jwtUtils } from "../utils/jwt.js";
@@ -40,21 +40,28 @@ export const auth = (...authRoles: UserRole[]) => {
       );
     }
 
+
     const user = await prisma.user.findUnique({
-      where: {
-        id,
-        email,
-        name,
-        role,
-      },
+      where: { id },
     });
 
     if (!user) {
       throw new Error("User not found. Please log in again.");
     }
 
-    if (user.status === "BANNED") {
-      throw new Error("Your account has been blocked. Please contact support.");
+
+    if (user.role !== role) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        "Session role mismatch. Please log in again.",
+      );
+    }
+
+    if (user.status === UserStatus.BANNED) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        "Your account has been blocked. Please contact support.",
+      );
     }
 
     req.user = {

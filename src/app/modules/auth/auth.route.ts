@@ -1,12 +1,39 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import { authController } from "./auth.controller.js";
 import { auth } from "../../middlewares/checkAuth.js";
+import { validateRequest } from "../../middlewares/validateRequest.js";
+import { authValidation } from "./auth.validation.js";
 import { UserRole } from "../../../generated/prisma/enums.js";
 
 export const authRouter: Router = Router();
 
-authRouter.post("/register", authController.registerUser);
-authRouter.post("/login", authController.loginUser);
+const authRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many requests from this IP, please try again after 15 minutes.",
+  },
+});
+
+
+authRouter.post(
+  "/register",
+  authRateLimiter,
+  validateRequest(authValidation.registerSchema),
+  authController.registerUser,
+);
+
+authRouter.post(
+  "/login",
+  authRateLimiter,
+  validateRequest(authValidation.loginSchema),
+  authController.loginUser,
+);
+
 authRouter.get(
   "/me",
   auth(UserRole.ADMIN, UserRole.LANDLORD, UserRole.TENANT),
