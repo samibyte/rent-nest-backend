@@ -17,15 +17,27 @@ export interface IPropertyPayload {
   categoryId: string;
 }
 
+export type PropertySortBy = "monthlyRent" | "createdAt" | "bedrooms";
+export type SortOrder = "asc" | "desc";
+
+export type AmenityMatch = "all" | "any";
+
 export interface IPropertyFilters {
   searchTerm?: string;
   city?: string;
+  area?: string;
   minPrice?: number;
   maxPrice?: number;
   categoryId?: string;
   amenities?: string[];
-  bedrooms?: number;
+  amenityMatch?: AmenityMatch; // "all" = hasEvery (default) | "any" = hasSome
+  bedrooms?: number;           // exact match (kept for backward compat)
+  minBedrooms?: number;        // range lower bound
+  maxBedrooms?: number;        // range upper bound
+  bathrooms?: number;          // exact match
   status?: PropertyStatus;
+  sortBy?: PropertySortBy;
+  sortOrder?: SortOrder;
 }
 
 export interface IPaginationOptions {

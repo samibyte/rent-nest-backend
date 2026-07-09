@@ -3,9 +3,12 @@ import { prisma } from "../../lib/prisma.js";
 import AppError from "../../errorHelpers/AppError.js";
 import { PropertyStatus } from "../../../generated/prisma/enums.js";
 import type {
+  AmenityMatch,
   IPropertyFilters,
   IPaginationOptions,
   IPropertyPayload,
+  PropertySortBy,
+  SortOrder,
 } from "./property.interface.js";
 
 // Landlord: Create
@@ -36,12 +39,19 @@ const getAllProperties = async (
   const {
     searchTerm,
     city,
+    area,
     minPrice,
     maxPrice,
     categoryId,
     amenities,
+    amenityMatch,
     bedrooms,
+    minBedrooms,
+    maxBedrooms,
+    bathrooms,
     status,
+    sortBy,
+    sortOrder,
   } = filters;
 
   const page = Number(pagination.page) || 1;
@@ -54,18 +64,38 @@ const getAllProperties = async (
   // Default to showing only AVAILABLE properties on public browse
   andConditions.push({ status: status ?? PropertyStatus.AVAILABLE });
 
+  // --- Location filters ---
   if (city) {
     andConditions.push({ city: { contains: city, mode: "insensitive" } });
   }
 
+  if (area) {
+    andConditions.push({ area: { contains: area, mode: "insensitive" } });
+  }
+
+  // --- Property type filter ---
   if (categoryId) {
     andConditions.push({ categoryId });
   }
 
-  if (bedrooms) {
+  // --- Bedroom filters (range takes precedence over exact match) ---
+  if (minBedrooms !== undefined || maxBedrooms !== undefined) {
+    andConditions.push({
+      bedrooms: {
+        ...(minBedrooms !== undefined && { gte: Number(minBedrooms) }),
+        ...(maxBedrooms !== undefined && { lte: Number(maxBedrooms) }),
+      },
+    });
+  } else if (bedrooms) {
     andConditions.push({ bedrooms: Number(bedrooms) });
   }
 
+  // --- Bathroom filter ---
+  if (bathrooms !== undefined) {
+    andConditions.push({ bathrooms: Number(bathrooms) });
+  }
+
+  // --- Price range filter ---
   if (minPrice !== undefined || maxPrice !== undefined) {
     andConditions.push({
       monthlyRent: {
@@ -75,11 +105,19 @@ const getAllProperties = async (
     });
   }
 
+  // --- Amenities filter ---
+  // amenityMatch=all (default): property must have EVERY requested amenity
+  // amenityMatch=any           : property must have AT LEAST ONE requested amenity
   if (amenities && amenities.length > 0) {
-    // hasEvery: property must contain all requested amenities
-    andConditions.push({ amenities: { hasEvery: amenities } });
+    const matchMode: AmenityMatch = amenityMatch === "any" ? "any" : "all";
+    andConditions.push(
+      matchMode === "any"
+        ? { amenities: { hasSome: amenities } }
+        : { amenities: { hasEvery: amenities } },
+    );
   }
 
+  // --- Full-text search (covers area field too) ---
   if (searchTerm) {
     andConditions.push({
       OR: [
@@ -87,11 +125,18 @@ const getAllProperties = async (
         { description: { contains: searchTerm, mode: "insensitive" } },
         { address: { contains: searchTerm, mode: "insensitive" } },
         { city: { contains: searchTerm, mode: "insensitive" } },
+        { area: { contains: searchTerm, mode: "insensitive" } },
       ],
     });
   }
 
   const where = { AND: andConditions };
+
+  // Build orderBy — default to newest first
+  const ALLOWED_SORT_FIELDS: PropertySortBy[] = ["monthlyRent", "createdAt", "bedrooms"];
+  const resolvedSortBy: PropertySortBy =
+    sortBy && ALLOWED_SORT_FIELDS.includes(sortBy) ? sortBy : "createdAt";
+  const resolvedSortOrder: SortOrder = sortOrder === "asc" ? "asc" : "desc";
 
   const [properties, total] = await Promise.all([
     prisma.property.findMany({
@@ -110,7 +155,7 @@ const getAllProperties = async (
           },
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { [resolvedSortBy]: resolvedSortOrder },
     }),
     prisma.property.count({ where }),
   ]);
