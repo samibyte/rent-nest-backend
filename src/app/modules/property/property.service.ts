@@ -227,10 +227,46 @@ const deleteProperty = async (id: string, landlordId: string) => {
   });
 };
 
+// Landlord: Get own properties
+
+const getMyProperties = async (
+  landlordId: string,
+  filters: Pick<IPropertyFilters, "status">,
+  pagination: IPaginationOptions,
+) => {
+  const page = Number(pagination.page) || 1;
+  const limit = Number(pagination.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const where = {
+    landlordId,
+    ...(filters.status && { status: filters.status }),
+  };
+
+  const [properties, total] = await Promise.all([
+    prisma.property.findMany({
+      where,
+      skip,
+      take: limit,
+      include: {
+        category: true,
+        _count: {
+          select: { rentalRequests: true, reviews: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.property.count({ where }),
+  ]);
+
+  return { properties, meta: { page, limit, total } };
+};
+
 export const propertyService = {
   createProperty,
   getAllProperties,
   getPropertyById,
   updateProperty,
   deleteProperty,
+  getMyProperties,
 };

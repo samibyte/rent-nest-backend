@@ -62,6 +62,25 @@ const getPropertyById = catchAsync(async (req: Request, res: Response) => {
 
 //Landlord Controllers
 
+const getMyProperties = catchAsync(async (req: Request, res: Response) => {
+  const landlordId = req.user!.id;
+  const { page, limit, status } = req.query;
+
+  const result = await propertyService.getMyProperties(
+    landlordId,
+    { status: status as PropertyStatus | undefined },
+    { page: Number(page) || 1, limit: Number(limit) || 10 },
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Your properties fetched successfully",
+    data: result.properties,
+    meta: result.meta,
+  });
+});
+
 const createProperty = catchAsync(async (req: Request, res: Response) => {
   const landlordId = req.user!.id;
   const property = await propertyService.createProperty(req.body, landlordId);
@@ -105,6 +124,7 @@ const deleteProperty = catchAsync(async (req: Request, res: Response) => {
 export const propertyController = {
   getAllProperties,
   getPropertyById,
+  getMyProperties,
   createProperty,
   updateProperty,
   deleteProperty,
