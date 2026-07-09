@@ -23,11 +23,11 @@ adminRouter.patch(
   adminController.updateUserStatus,
 );
 
-// GET /api/v1/admin/properties - View all properties (Issue #3)
+// GET /api/v1/admin/properties - View all properties 
 adminRouter.get("/properties", adminController.getAllProperties);
 
 // DELETE /api/v1/admin/properties/:id - Moderation delete of a property
 adminRouter.delete("/properties/:id", adminController.deletePropertyListing);
 
-// GET /api/v1/admin/rentals - View all rental requests (Issue #3)
+// GET /api/v1/admin/rentals - View all rental requests 
 adminRouter.get("/rentals", adminController.getAllRentals);

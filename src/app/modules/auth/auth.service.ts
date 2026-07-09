@@ -59,7 +59,7 @@ const loginUser = async (payload: ILoginUser) => {
     where: { email },
   });
 
-  if (user.status === "BANNED") {
+  if (user.status === UserStatus.BANNED) {
     throw new AppError(
       status.FORBIDDEN,
       "Your account has been banned. Please contact support.",
@@ -68,8 +68,9 @@ const loginUser = async (payload: ILoginUser) => {
 
   const isPasswordMatched = await bcrypt.compare(password, user.password);
 
+
   if (!isPasswordMatched) {
-    throw new Error("Password is incorrect");
+    throw new AppError(status.UNAUTHORIZED, "Invalid email or password.");
   }
 
   const jwtPayload = {
