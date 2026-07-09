@@ -76,9 +76,49 @@ const deletePropertyListing = catchAsync(async (req: Request, res: Response) => 
   });
 });
 
+// Admin: Get All Properties
+
+const getAllProperties = catchAsync(async (req: Request, res: Response) => {
+  const { page, limit } = req.query;
+
+  const result = await adminService.getAllProperties({
+    page: Number(page) || 1,
+    limit: Number(limit) || 10,
+  });
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "All properties retrieved successfully",
+    data: result.properties,
+    meta: result.meta,
+  });
+});
+
+// Admin: Get All Rental Requests
+
+const getAllRentals = catchAsync(async (req: Request, res: Response) => {
+  const { page, limit, status } = req.query;
+
+  const result = await adminService.getAllRentals(
+    { status: status as string | undefined },
+    { page: Number(page) || 1, limit: Number(limit) || 10 },
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "All rental requests retrieved successfully",
+    data: result.rentals,
+    meta: result.meta,
+  });
+});
+
 export const adminController = {
   getDashboardStats,
   getAllUsers,
   updateUserStatus,
   deletePropertyListing,
+  getAllProperties,
+  getAllRentals,
 };

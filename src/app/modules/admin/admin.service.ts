@@ -204,9 +204,78 @@ const deletePropertyListing = async (propertyId: string) => {
   });
 };
 
+// Admin: Get all properties (moderation view)
+
+const getAllProperties = async (pagination: IPaginationOptions) => {
+  const page = Number(pagination.page) || 1;
+  const limit = Number(pagination.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const [properties, total] = await Promise.all([
+    prisma.property.findMany({
+      skip,
+      take: limit,
+      include: {
+        category: true,
+        landlord: {
+          select: { id: true, name: true, email: true, phone: true },
+        },
+        _count: {
+          select: { rentalRequests: true, reviews: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.property.count(),
+  ]);
+
+  return { properties, meta: { page, limit, total } };
+};
+
+// Admin: Get all rental requests (moderation view)
+
+const getAllRentals = async (
+  filters: { status?: string },
+  pagination: IPaginationOptions,
+) => {
+  const page = Number(pagination.page) || 1;
+  const limit = Number(pagination.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const where = filters.status ? { status: filters.status as any } : {};
+
+  const [rentals, total] = await Promise.all([
+    prisma.rentalRequest.findMany({
+      where,
+      skip,
+      take: limit,
+      include: {
+        tenant: {
+          select: { id: true, name: true, email: true, phone: true },
+        },
+        property: {
+          include: {
+            landlord: {
+              select: { id: true, name: true, email: true },
+            },
+            category: true,
+          },
+        },
+        payment: true,
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.rentalRequest.count({ where }),
+  ]);
+
+  return { rentals, meta: { page, limit, total } };
+};
+
 export const adminService = {
   getDashboardStats,
   getAllUsers,
   updateUserStatus,
+  getAllProperties,
+  getAllRentals,
   deletePropertyListing,
 };
