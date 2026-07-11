@@ -1,0 +1,678 @@
+{
+  "info": {
+    "_postman_id": "9ed817e3-60df-407d-a262-e93fbeb7264f",
+    "name": "Rent Nest Prod",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "49609884",
+    "_collection_link": "https://go.postman.co/collection/49609884-9ed817e3-60df-407d-a262-e93fbeb7264f?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"NPC7\",\r\n    \"email\" : \"npc002@gmail.com\",\r\n    \"password\" : \"123456\",\r\n    \"phone\": \"12345678999\",\r\n    \"avatar\": \"https://www.profile.com\",\r\n    \"role\": \"TENANT\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://rent-nest-backend-woad.vercel.app/api/v1/auth/register",
+              "protocol": "https",
+              "host": ["rent-nest-backend-woad", "vercel", "app"],
+              "path": ["api", "v1", "auth", "register"]
+            },
+            "description": "Creates a new user account on the Rent Nest platform.\n\n**Auth:** None required.\n\n**Rate limit:** 20 requests per 15 minutes per IP.\n\n**Request body:**\n| Field | Type | Required | Notes |\n|-------|------|----------|-------|\n| `name` | string | ✅ | Full display name |\n| `email` | string | ✅ | Must be unique |\n| `password` | string | ✅ | Min 6 characters |\n| `phone` | string | ✅ | Contact number |\n| `avatar` | string | ❌ | URL to profile image |\n| `role` | enum | ✅ | `TENANT` or `LANDLORD` |\n\n**Success response (201):** Returns the newly created user object. The password is never returned. `status` defaults to `ACTIVE`.\n\n**Errors:**\n- `400 Bad Request` — validation failure (missing fields, invalid email format)\n- `409 Conflict` — email is already registered"
+          },
+          "response": []
+        },
+        {
+          "name": "Login User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\" : \"npc002@gmail.com\",\r\n    \"password\" : \"123456\"\r\n}\r\n\r\n\r\n// Admin Credential\r\n// {\r\n//     \"email\" : \"admin@gmail.com\",\r\n//     \"password\" : \"123456\"\r\n// }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://rent-nest-backend-woad.vercel.app/api/v1/auth/login",
+              "protocol": "https",
+              "host": ["rent-nest-backend-woad", "vercel", "app"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Authenticates a user with email and password.\n\n**Auth:** None required.\n\n**Request body:**\n| Field | Type | Required |\n|-------|------|----------|\n| `email` | string | ✅ |\n| `password` | string | ✅ |\n\n**Success response (201):** Returns `accessToken` and `refreshToken` as both JSON body fields and `HttpOnly` cookies (`SameSite=None; Secure`).\n\n**Token lifetimes:**\n- `accessToken` — 24 hours\n- `refreshToken` — 7 days\n\nAll protected endpoints require the `accessToken` sent as a Bearer token in the `Authorization` header: `Authorization: Bearer <token>`\n\n**Admin credentials (seed data):**\n```\nemail: admin@gmail.com\npassword: 123456\n```\n\n**Errors:**\n- `401 Unauthorized` — wrong password\n- `404 Not Found` — email not registered\n- `403 Forbidden` — account is BLOCKED"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Me",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://rent-nest-backend-woad.vercel.app/api/v1/auth/me",
+              "protocol": "https",
+              "host": ["rent-nest-backend-woad", "vercel", "app"],
+              "path": ["api", "v1", "auth", "me"]
+            },
+            "description": "Returns the full profile of the currently authenticated user.\n\n**Auth:** Required — Bearer token (any role: TENANT, LANDLORD, ADMIN).\n\n**How to authenticate:** Set the `Authorization` header to `Bearer <accessToken>` obtained from the Login endpoint. Alternatively, if cookies are enabled in your Postman environment, the `accessToken` cookie is sent automatically.\n\n**Success response (200):** User object including `id`, `name`, `email`, `phone`, `avatar`, `role`, `status`, `createdAt`, `updatedAt`. The password hash is excluded.\n\n**Errors:**\n- `401 Unauthorized` — missing or expired token\n- `403 Forbidden` — token is valid but account is BLOCKED"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Property",
+      "item": [
+        {
+          "name": "Public",
+          "item": [
+            {
+              "name": "All Properties",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "https://rent-nest-backend-woad.vercel.app/api/v1/properties",
+                  "protocol": "https",
+                  "host": ["rent-nest-backend-woad", "vercel", "app"],
+                  "path": ["api", "v1", "properties"]
+                },
+                "description": "Returns a paginated list of all **available** rental property listings.\n\n**Auth:** None — publicly accessible.\n\n**Supported query parameters:**\n| Param | Type | Example | Description |\n|-------|------|---------|-------------|\n| `page` | number | `?page=1` | Page number (default: 1) |\n| `limit` | number | `?limit=10` | Results per page (default: 10) |\n| `city` | string | `?city=Dhaka` | Filter by city name |\n| `minRent` | number | `?minRent=5000` | Minimum monthly rent |\n| `maxRent` | number | `?maxRent=30000` | Maximum monthly rent |\n| `bedrooms` | number | `?bedrooms=2` | Filter by bedroom count |\n| `categoryId` | uuid | `?categoryId=...` | Filter by category |\n\n**Success response (200):** Array of property objects with pagination meta (`page`, `limit`, `total`). Each property includes category info and landlord public profile.\n\nOnly AVAILABLE listings are returned. UNAVAILABLE listings are hidden."
+              },
+              "response": []
+            },
+            {
+              "name": "Categories",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "https://rent-nest-backend-woad.vercel.app/api/v1/categories",
+                  "protocol": "https",
+                  "host": ["rent-nest-backend-woad", "vercel", "app"],
+                  "path": ["api", "v1", "categories"]
+                },
+                "description": "Returns all property categories defined in the system.\n\n**Auth:** None — publicly accessible.\n\n**Success response (200):** Array of category objects. Each category has:\n- `id` — UUID\n- `name` — Category label (e.g., Apartment, Studio, Villa)\n- `description` — Optional human-readable description\n\nUse the `id` from this response as `categoryId` when creating a property or filtering the All Properties endpoint."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Property By Id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "https://rent-nest-backend-woad.vercel.app/api/v1/properties/bb6b16af-6fc7-429e-ac4f-59cdf72f18cb",
+                  "protocol": "https",
+                  "host": ["rent-nest-backend-woad", "vercel", "app"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "properties",
+                    "bb6b16af-6fc7-429e-ac4f-59cdf72f18cb"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Landlord",
+          "item": [
+            {
+              "name": "Get Own Property List",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "https://rent-nest-backend-woad.vercel.app/api/v1/properties/",
+                  "protocol": "https",
+                  "host": ["rent-nest-backend-woad", "vercel", "app"],
+                  "path": ["api", "v1", "properties", ""]
+                },
+                "description": "Fetches the full details of a single property listing by its UUID.\n\n**Auth:** Required — Bearer token (LANDLORD role).\n\n**Path param:** Replace the trailing `/` with the property UUID.\nExample: `/api/v1/properties/565de813-8bfa-4491-bb2e-30c4b7dd0969`\n\n**Success response (200):** Full property object including:\n- Core fields: `title`, `description`, `address`, `city`, `monthlyRent`, `securityDeposit`, `bedrooms`, `bathrooms`, `amenities`, `images`\n- `status` — `AVAILABLE` or `UNAVAILABLE`\n- `category` — linked category object\n- `landlord` — public landlord profile\n\n**Errors:**\n- `404 Not Found` — no property with that UUID exists"
+              },
+              "response": []
+            },
+            {
+              "name": "Create Property",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"title\": \"Cozy Studio in Gulshan\",\r\n    \"description\": \"A fully furnished studio apartment with all modern amenities.\",\r\n    \"address\": \"House 12, Road 5, Gulshan-1\",\r\n    \"city\": \"Dhaka\",\r\n    \"monthlyRent\": 15000,\r\n    \"securityDeposit\": 30000,\r\n    \"bedrooms\": 1,\r\n    \"bathrooms\": 1,\r\n    \"images\": [\"https://example.com/img1.jpg\"],\r\n    \"amenities\": [\"WiFi\", \"AC\", \"Parking\"],\r\n    \"categoryId\": \"5c482b18-a673-4af3-9cf2-6ffae710e2ab\"\r\n  }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "https://rent-nest-backend-woad.vercel.app/api/v1/landlord/properties",
+                  "protocol": "https",
+                  "host": ["rent-nest-backend-woad", "vercel", "app"],
+                  "path": ["api", "v1", "landlord", "properties"]
+                },
+                "description": "Creates a new rental property listing owned by the authenticated Landlord.\n\n**Auth:** Required — Bearer token (LANDLORD role only).\n\n**Request body:**  \n| Field | Type | Required | Notes |  \n|-------|------|----------|-------|  \n| `title` | string | ✅ | Short listing title |  \n| `description` | string | ✅ | Detailed description |  \n| `address` | string | ✅ | Street address |  \n| `city` | string | ✅ | City name |  \n| `monthlyRent` | number | ✅ | Monthly rent in BDT |  \n| `securityDeposit` | number | ✅ | Security deposit amount |  \n| `bedrooms` | number | ✅ | Number of bedrooms |  \n| `bathrooms` | number | ✅ | Number of bathrooms |  \n| `images` | string\\[\\] | ✅ | Array of image URLs |  \n| `amenities` | string\\[\\] | ❌ | e.g. `[\"WiFi\", \"AC\", \"Parking\"]` |  \n| `categoryId` | uuid | ✅ | ID from the Categories endpoint |\n\n**Success response (201):** Returns the newly created property object. Status defaults to `AVAILABLE`. The `landlordId` is set automatically from the authenticated user.\n\n**Errors:**\n\n- `400 Bad Request` — validation failure\n    \n- `403 Forbidden` — caller is not a LANDLORD\n    \n- `404 Not Found` — `categoryId` does not exist"
+              },
+              "response": []
+            },
+            {
+              "name": "Update Property",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"monthlyRent\": 58000, \"status\": \"UNAVAILABLE\", \"address\": \"House 13, Road 5, Gulshan-1\", \"bedrooms\": 3, \"bathrooms\":2 }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "https://rent-nest-backend-woad.vercel.app/api/v1/landlord/properties/565de813-8bfa-4491-bb2e-30c4b7dd0969",
+                  "protocol": "https",
+                  "host": ["rent-nest-backend-woad", "vercel", "app"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "landlord",
+                    "properties",
+                    "565de813-8bfa-4491-bb2e-30c4b7dd0969"
+                  ]
+                },
+                "description": "Partially updates an existing property listing by its UUID.\n\n**Auth:** Required — Bearer token (LANDLORD role). The caller must be the **owner** of this listing.\n\n**Path param:** Property UUID in the URL.\n\n**Request body:** All fields are optional. Only include the fields you want to change.\n| Field | Type | Notes |\n|-------|------|-------|\n| `title` | string | |\n| `description` | string | |\n| `address` | string | |\n| `city` | string | |\n| `monthlyRent` | number | |\n| `securityDeposit` | number | |\n| `bedrooms` | number | |\n| `bathrooms` | number | |\n| `images` | string[] | Replaces existing image list |\n| `amenities` | string[] | Replaces existing amenity list |\n| `status` | enum | `AVAILABLE` or `UNAVAILABLE` |\n| `categoryId` | uuid | |\n\n**Success response (200):** The updated property object.\n\n**Errors:**\n- `403 Forbidden` — caller does not own this listing\n- `404 Not Found` — property UUID not found"
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Property",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "https://rent-nest-backend-woad.vercel.app/api/v1/landlord/properties/8e0adb83-3a50-4782-a180-c1aab9e6e186",
+                  "protocol": "https",
+                  "host": ["rent-nest-backend-woad", "vercel", "app"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "landlord",
+                    "properties",
+                    "8e0adb83-3a50-4782-a180-c1aab9e6e186"
+                  ]
+                },
+                "description": "Permanently deletes a property listing by its UUID.\n\n**Auth:** Required — Bearer token (LANDLORD role). The caller must be the **owner** of this listing.\n\n**Path param:** Property UUID in the URL.\n\n**Success response (200):** Confirmation message.\n\n⚠️ **Irreversible.** All associated rental requests for this property will also be deleted.\n\n**Errors:**\n- `403 Forbidden` — caller does not own this listing\n- `404 Not Found` — property UUID not found"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Rentals",
+      "item": [
+        {
+          "name": "TENANT",
+          "item": [
+            {
+              "name": "Rental Request",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"propertyId\": \"f5302d60-7f8a-4dbc-9452-a50f15bccea9\",\r\n    \"moveInDate\": \"2026-08-09T12:00:00\",\r\n    \"message\": \"Bhara 1000 kom hobe?\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "https://rent-nest-backend-woad.vercel.app/api/v1/rentals",
+                  "protocol": "https",
+                  "host": ["rent-nest-backend-woad", "vercel", "app"],
+                  "path": ["api", "v1", "rentals"]
+                },
+                "description": "Submits a new rental request for a property. Only Tenants may use this endpoint.\n\n**Auth:** Required — Bearer token (TENANT role only).\n\n**Request body:**\n| Field | Type | Required | Notes |\n|-------|------|----------|-------|\n| `propertyId` | uuid | ✅ | UUID of the target property |\n| `moveInDate` | ISO 8601 | ✅ | Requested move-in date/time |\n| `message` | string | ❌ | Optional note to the landlord |\n\n**Workflow:**\n1. Tenant submits request → status is `PENDING`\n2. Landlord reviews and sets status to `APPROVED` or `REJECTED`\n3. If `APPROVED`, Tenant may proceed to payment\n4. After successful payment, status becomes `ACTIVE`\n\n**Success response (201):** The created rental request object.\n\n**Errors:**\n- `403 Forbidden` — caller is not a TENANT\n- `404 Not Found` — property not found\n- `409 Conflict` — Tenant already has a pending/active request for this property"
+              },
+              "response": []
+            },
+            {
+              "name": "Get Rental Requests",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "https://rent-nest-backend-woad.vercel.app/api/v1/rentals",
+                  "protocol": "https",
+                  "host": ["rent-nest-backend-woad", "vercel", "app"],
+                  "path": ["api", "v1", "rentals"]
+                },
+                "description": "Returns all rental requests submitted by the currently authenticated Tenant.\n\n**Auth:** Required — Bearer token (TENANT role only).\n\n**Supported query parameters:**\n| Param | Example | Description |\n|-------|---------|-------------|\n| `status` | `?status=PENDING` | Filter by status: `PENDING`, `APPROVED`, `REJECTED`, `ACTIVE` |\n| `page` | `?page=1` | Page number (default: 1) |\n| `limit` | `?limit=10` | Results per page (default: 10) |\n\n**Success response (200):** Paginated array of rental request objects, each including the associated property summary and landlord details."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Rental Request Details By Id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "https://rent-nest-backend-woad.vercel.app/api/v1/rentals/8046c187-d352-44f6-963e-c59e26483f40",
+                  "protocol": "https",
+                  "host": ["rent-nest-backend-woad", "vercel", "app"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "rentals",
+                    "8046c187-d352-44f6-963e-c59e26483f40"
+                  ]
+                },
+                "description": "Fetches the complete details of a single rental request by its UUID.\n\n**Auth:** Required — Bearer token (TENANT role). The caller must own this rental request.\n\n**Path param:** Rental request UUID in the URL.\n\n**Success response (200):** Full rental request object including:\n- `status` — current status (`PENDING`, `APPROVED`, `REJECTED`, `ACTIVE`)\n- `moveInDate` — tenant's requested move-in date\n- `message` — tenant's note to landlord\n- `property` — full property details\n- `payment` — linked payment record (if payment was initiated)\n\n**Errors:**\n- `403 Forbidden` — rental request belongs to another tenant\n- `404 Not Found` — UUID not found"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "LANDLORD",
+          "item": [
+            {
+              "name": "View All Rental Requests",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "https://rent-nest-backend-woad.vercel.app/api/v1/landlord/requests",
+                  "protocol": "https",
+                  "host": ["rent-nest-backend-woad", "vercel", "app"],
+                  "path": ["api", "v1", "landlord", "requests"]
+                },
+                "description": "Returns all rental requests received across all of the Landlord's properties.\n\n**Auth:** Required — Bearer token (LANDLORD role only). Only requests for properties owned by this landlord are returned.\n\n**Supported query parameters:**\n| Param | Example | Description |\n|-------|---------|-------------|\n| `status` | `?status=PENDING` | Filter by status: `PENDING`, `APPROVED`, `REJECTED`, `ACTIVE` |\n| `propertyId` | `?propertyId=...` | Filter to a specific property |\n| `page` | `?page=1` | Page number (default: 1) |\n| `limit` | `?limit=10` | Results per page (default: 10) |\n\n**Success response (200):** Paginated array of rental requests, each including the tenant's public profile and the associated property summary."
+              },
+              "response": []
+            },
+            {
+              "name": "Approve Or Reject Requests",
+              "request": {
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"status\": \"APPROVED\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "https://rent-nest-backend-woad.vercel.app/api/v1/landlord/requests/9e2e8eba-68ad-44cf-ba2a-f343ed37c912",
+                  "protocol": "https",
+                  "host": ["rent-nest-backend-woad", "vercel", "app"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "landlord",
+                    "requests",
+                    "9e2e8eba-68ad-44cf-ba2a-f343ed37c912"
+                  ]
+                },
+                "description": "Allows a Landlord to approve or reject a pending rental request.\n\n**Auth:** Required — Bearer token (LANDLORD role). The caller must own the property associated with this request.\n\n**Path param:** Rental request UUID in the URL.\n\n**Request body:**\n```json\n{ \"status\": \"APPROVED\" }\n// or\n{ \"status\": \"REJECTED\" }\n```\n\n**Business rules:**\n- Only `PENDING` requests can be acted upon\n- Setting to `APPROVED` enables the tenant to initiate payment\n- Setting to `REJECTED` closes the request permanently\n\n**Success response (200):** Updated rental request object.\n\n**Errors:**\n- `400 Bad Request` — request is not in PENDING status\n- `403 Forbidden` — landlord does not own the associated property\n- `404 Not Found` — rental request UUID not found"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Payment",
+      "item": [
+        {
+          "name": "Create Payment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"rentalRequestId\": \"9e2e8eba-68ad-44cf-ba2a-f343ed37c912\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://rent-nest-backend-woad.vercel.app/api/v1/payments/create",
+              "protocol": "https",
+              "host": ["rent-nest-backend-woad", "vercel", "app"],
+              "path": ["api", "v1", "payments", "create"]
+            },
+            "description": "Initiates a Stripe Checkout payment session for an approved rental request.\n\n**Auth:** Required — Bearer token (TENANT role). The caller must be the tenant who owns this rental request.\n\n**Request body:**  \n| Field | Type | Required | Notes |  \n|-------|------|----------|-------|  \n| `rentalRequestId` | uuid | ✅ | UUID of an APPROVED rental request |  \n| `successUrl` | string | ❌ | Redirect URL on payment success (defaults to localhost) |  \n| `cancelUrl` | string | ❌ | Redirect URL on payment cancellation |\n\n**What this does:**\n\n1. Validates the rental request is APPROVED and belongs to the caller\n    \n2. Creates a PENDING payment record in the database\n    \n3. Creates a Stripe Checkout Session for `monthlyRent` amount\n    \n4. Returns the Stripe `checkoutUrl` — redirect the user to this URL to complete payment\n    \n\n**Success response (201):** `{ payment, checkoutUrl }` — open `checkoutUrl` in a browser.\n\n**Errors:**\n\n- `400 Bad Request` — rental is not APPROVED\n    \n- `403 Forbidden` — caller does not own this rental\n    \n- `404 Not Found` — rental request not found\n    \n- `409 Conflict` — payment already exists for this rental"
+          },
+          "response": []
+        },
+        {
+          "name": "Confirm Payment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"transactionId\": \"cs_test_a1wq2JO6zgsDxaPHgHv89RBOVkAVkamuKPRV69ajXvC5BkM1EDrSSLFTkb\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://rent-nest-backend-woad.vercel.app/api/v1/payments/confirm",
+              "protocol": "https",
+              "host": ["rent-nest-backend-woad", "vercel", "app"],
+              "path": ["api", "v1", "payments", "confirm"]
+            },
+            "description": "Manually confirms a Stripe Checkout payment after the user has completed the checkout flow. This is a fallback for cases where the Stripe webhook did not fire.\n\n**Auth:** Required — Bearer token (TENANT role). The caller must be the tenant who initiated the payment.\n\n**Request body:**\n| Field | Type | Required | Notes |\n|-------|------|----------|-------|\n| `transactionId` | string | ✅ | Stripe Checkout Session ID (e.g. `cs_test_...`) |\n\n**What this does:**\n1. Looks up the payment by `transactionId`\n2. Calls Stripe to verify `payment_status === 'paid'`\n3. Atomically updates the payment to `COMPLETED` and the rental request to `ACTIVE`\n\n**Note:** Under normal flow, the Stripe webhook (`/api/v1/payments/webhook`) handles this automatically. Use this endpoint only if the webhook was missed.\n\n**Success response (200):** The updated payment record.\n\n**Errors:**\n- `400 Bad Request` — payment is not PENDING, or Stripe reports it as unpaid\n- `403 Forbidden` — caller does not own this payment\n- `404 Not Found` — no payment found with that `transactionId`\n- `409 Conflict` — payment was already processed (race condition guard)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Payments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://rent-nest-backend-woad.vercel.app/api/v1/payments",
+              "protocol": "https",
+              "host": ["rent-nest-backend-woad", "vercel", "app"],
+              "path": ["api", "v1", "payments"]
+            },
+            "description": "Returns the authenticated tenant's full payment history on the platform.\n\n**Auth:** Required — Bearer token (TENANT role only).\n\n**Supported query parameters:**\n| Param | Example | Description |\n|-------|---------|-------------|\n| `page` | `?page=1` | Page number (default: 1) |\n| `limit` | `?limit=10` | Results per page (default: 10) |\n\n**Success response (200):** Paginated array of payment records. Each record includes:\n- `status` — `PENDING`, `COMPLETED`, or `FAILED`\n- `amount` — amount charged (property's `monthlyRent`)\n- `method` — `CARD`\n- `provider` — `STRIPE`\n- `paidAt` — timestamp of successful payment (null for PENDING/FAILED)\n- `rentalRequest` — linked rental request with property summary\n- Pagination meta: `{ page, limit, total }`"
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Payment By Id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://rent-nest-backend-woad.vercel.app/api/v1/payments/269016e0-2e3f-4bf6-bd1f-c4a5b91c237e",
+              "protocol": "https",
+              "host": ["rent-nest-backend-woad", "vercel", "app"],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "269016e0-2e3f-4bf6-bd1f-c4a5b91c237e"
+              ]
+            },
+            "description": "Fetches the full details of a specific payment record by its UUID.\n\n**Auth:** Required — Bearer token (TENANT role). The caller must own this payment.\n\n**Path param:** Payment UUID in the URL.\n\n**Success response (200):** Full payment object including:\n- All payment fields (`amount`, `status`, `method`, `provider`, `paidAt`, `transactionId`)\n- `rentalRequest` with full property details (category, images, address)\n- Landlord public profile (`name`, `email`, `phone`)\n\n**Errors:**\n- `403 Forbidden` — payment belongs to another tenant\n- `404 Not Found` — UUID not found"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Reviews",
+      "item": [
+        {
+          "name": "Post Review",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"propertyId\": \"8e0adb83-3a50-4782-a180-c1aab9e6e186\",\r\n    \"rating\": 4,\r\n    \"comment\": \"Good but price could be lower\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://rent-nest-backend-woad.vercel.app/api/v1/reviews",
+              "protocol": "https",
+              "host": ["rent-nest-backend-woad", "vercel", "app"],
+              "path": ["api", "v1", "reviews"]
+            },
+            "description": "Submits a review and star rating for a property. Only tenants with a completed (ACTIVE) rental for that property may leave a review.\n\n**Auth:** Required — Bearer token (TENANT role only).\n\n**Request body:**\n| Field | Type | Required | Notes |\n|-------|------|----------|-------|\n| `propertyId` | uuid | ✅ | UUID of the property being reviewed |\n| `rating` | number | ✅ | Integer from 1 to 5 |\n| `comment` | string | ❌ | Optional written review text |\n\n**Success response (201):** The created review object.\n\n**Errors:**\n- `400 Bad Request` — rating out of range or validation failure\n- `403 Forbidden` — tenant does not have an ACTIVE rental for this property\n- `404 Not Found` — property not found\n- `409 Conflict` — tenant has already reviewed this property"
+          },
+          "response": []
+        },
+        {
+          "name": "Get all reviews for a Property",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://rent-nest-backend-woad.vercel.app/api/v1/reviews/property/8e0adb83-3a50-4782-a180-c1aab9e6e186",
+              "protocol": "https",
+              "host": ["rent-nest-backend-woad", "vercel", "app"],
+              "path": [
+                "api",
+                "v1",
+                "reviews",
+                "property",
+                "8e0adb83-3a50-4782-a180-c1aab9e6e186"
+              ]
+            },
+            "description": "Returns all reviews submitted for a specific property.\n\n**Auth:** None — publicly accessible.\n\n**Path param:** Property UUID in the URL path: `/api/v1/reviews/property/`\n\n**Success response (200):** Array of review objects. Each review includes:\n\n- `rating` — 1–5 star score\n    \n- `comment` — written review text (may be null)\n    \n- `createdAt` — when the review was posted\n    \n- `tenant` — reviewer's public profile (`name`, `avatar`)\n    \n\nAlso includes the aggregate `averageRating` for the property."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "ADMIN",
+      "item": [
+        {
+          "name": "Get Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://rent-nest-backend-woad.vercel.app/api/v1/admin/stats",
+              "protocol": "https",
+              "host": ["rent-nest-backend-woad", "vercel", "app"],
+              "path": ["api", "v1", "admin", "stats"]
+            },
+            "description": "Returns a high-level analytics summary for the admin dashboard.\n\n**Auth:** Required — Bearer token (ADMIN role only).\n\n**Success response (200):**  \n| Field | Description |  \n|-------|-------------|  \n| `totalUsers` | All registered users |  \n| `totalLandlords` | Users with LANDLORD role |  \n| `totalTenants` | Users with TENANT role |  \n| `totalProperties` | All property listings |  \n| `availableProperties` | Listings currently AVAILABLE |  \n| `totalRentals` | All rental requests ever submitted |  \n| `pendingRentals` | Requests awaiting landlord decision |  \n| `approvedRentals` | Landlord-approved requests |  \n| `totalRevenue` | Sum of all COMPLETED payment amounts (USD) |\n\n**Errors:**\n\n- `403 Forbidden` — caller is not an ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://rent-nest-backend-woad.vercel.app/api/v1/admin/users",
+              "protocol": "https",
+              "host": ["rent-nest-backend-woad", "vercel", "app"],
+              "path": ["api", "v1", "admin", "users"],
+              "query": [
+                {
+                  "key": "role",
+                  "value": "TENANT",
+                  "description": "Optional. Filter by role: TENANT, LANDLORD, or ADMIN.",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE",
+                  "description": "Optional. Filter by account status: ACTIVE or BLOCKED.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Returns a list of all registered users across the platform.\n\n**Auth:** Required — Bearer token (ADMIN role only).\n\n**Supported query parameters:**\n| Param | Example | Description |\n|-------|---------|-------------|\n| `role` | `?role=TENANT` | Filter by role: `TENANT`, `LANDLORD`, or `ADMIN` |\n| `status` | `?status=BLOCKED` | Filter by status: `ACTIVE` or `BLOCKED` |\n| `page` | `?page=1` | Page number (default: 1) |\n| `limit` | `?limit=20` | Results per page (default: 10) |\n\n**Success response (200):** Paginated array of user objects (password excluded). Includes pagination meta: `{ page, limit, total }`.\n\n**Errors:**\n- `403 Forbidden` — caller is not an ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "Block or Unblock User",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"status\": \"BLOCKED\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://rent-nest-backend-woad.vercel.app/api/v1/admin/users/:id/status",
+              "protocol": "https",
+              "host": ["rent-nest-backend-woad", "vercel", "app"],
+              "path": ["api", "v1", "admin", "users", ":id", "status"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "201c4648-a388-4bc1-89fb-c0f6e4320bbd",
+                  "description": "UUID of the user to moderate."
+                }
+              ]
+            },
+            "description": "Moderates a user account by updating its `status` field.\n\n**Auth:** Required — Bearer token (ADMIN role only).\n\n**Path param:** `id` — UUID of the target user.\n\n**Request body:**\n```json\n{ \"status\": \"BLOCKED\" } // block the user\n{ \"status\": \"ACTIVE\" }  // restore access\n```\n\n**Effects of BLOCKED status:**\n- Login attempts return `403 Forbidden`\n- Existing tokens are effectively invalidated (middleware checks status on every request)\n- All public-facing actions (posting, requesting, paying) are rejected\n\n**Success response (200):** Updated user object.\n\n**Errors:**\n- `400 Bad Request` — invalid status value\n- `403 Forbidden` — caller is not an ADMIN\n- `404 Not Found` — user UUID not found"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Properties (Admin View)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://rent-nest-backend-woad.vercel.app/api/v1/admin/properties",
+              "protocol": "https",
+              "host": ["rent-nest-backend-woad", "vercel", "app"],
+              "path": ["api", "v1", "admin", "properties"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "AVAILABLE",
+                  "description": "Optional. Filter by listing status: AVAILABLE or UNAVAILABLE.",
+                  "disabled": true
+                },
+                {
+                  "key": "city",
+                  "value": "Dhaka",
+                  "description": "Optional. Filter by city name.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Returns all property listings across the platform, including UNAVAILABLE ones.\n\n**Auth:** Required — Bearer token (ADMIN role only).\n\nUnlike the public `/api/v1/properties` endpoint (which only returns AVAILABLE listings), this admin view includes all statuses and exposes full landlord details for oversight.\n\n**Supported query parameters:**\n| Param | Example | Description |\n|-------|---------|-------------|\n| `status` | `?status=UNAVAILABLE` | Filter by listing status |\n| `city` | `?city=Dhaka` | Filter by city |\n| `page` | `?page=1` | Page number |\n| `limit` | `?limit=20` | Results per page |\n\n**Success response (200):** Paginated property array with full landlord info.\n\n**Errors:**\n- `403 Forbidden` — caller is not an ADMIN"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Property Listing (Moderation)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "https://rent-nest-backend-woad.vercel.app/api/v1/admin/properties/565de813-8bfa-4491-bb2e-30c4b7dd0969",
+              "protocol": "https",
+              "host": ["rent-nest-backend-woad", "vercel", "app"],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "properties",
+                "565de813-8bfa-4491-bb2e-30c4b7dd0969"
+              ]
+            },
+            "description": "Permanently removes any property listing from the platform by its UUID. This is a platform moderation action — it can target any listing regardless of landlord.\n\n**Auth:** Required — Bearer token (ADMIN role only).\n\n**Path param:** `id` — UUID of the property to delete.\n\n**Success response (200):** Confirmation message.\n\n⚠️ **This action is irreversible.** Unlike the landlord DELETE endpoint, there is no ownership check. Use with care.\n\n**Errors:**\n- `403 Forbidden` — caller is not an ADMIN\n- `404 Not Found` — property UUID not found"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Rental Requests (Admin View)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://rent-nest-backend-woad.vercel.app/api/v1/admin/rentals",
+              "protocol": "https",
+              "host": ["rent-nest-backend-woad", "vercel", "app"],
+              "path": ["api", "v1", "admin", "rentals"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING",
+                  "description": "Optional. Filter by status: PENDING, APPROVED, or REJECTED.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Returns all rental requests across the entire platform — from all tenants and all landlords.\n\n**Auth:** Required — Bearer token (ADMIN role only).\n\nUnlike `/api/v1/landlord/requests` (scoped to one landlord's properties), this endpoint provides a complete unfiltered view.\n\n**Supported query parameters:**\n| Param | Example | Description |\n|-------|---------|-------------|\n| `status` | `?status=PENDING` | Filter by status: `PENDING`, `APPROVED`, `REJECTED`, `ACTIVE` |\n| `page` | `?page=1` | Page number |\n| `limit` | `?limit=20` | Results per page |\n\n**Success response (200):** Paginated array of rental request objects with tenant, property, and landlord details.\n\n**Errors:**\n- `403 Forbidden` — caller is not an ADMIN"
+          },
+          "response": []
+        }
+      ],
+      "description": "Administrative endpoints for managing the Rent Nest platform. All routes require a valid Admin JWT sent as a Bearer token.\n\nAdmin seed credentials:\n- Email: admin@gmail.com\n- Password: 123456"
+    },
+    {
+      "name": "LANDLORD",
+      "item": [
+        {
+          "name": "Landlord Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://rent-nest-backend-woad.vercel.app/api/v1/landlord/stats",
+              "protocol": "https",
+              "host": ["rent-nest-backend-woad", "vercel", "app"],
+              "path": ["api", "v1", "landlord", "stats"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
