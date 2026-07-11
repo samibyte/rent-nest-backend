@@ -1,7 +1,7 @@
 import httpStatus from "http-status";
 import { prisma } from "../../lib/prisma.js";
 import AppError from "../../errorHelpers/AppError.js";
-import { PropertyStatus } from "../../../generated/prisma/enums.js";
+import { PaymentStatus, PropertyStatus, RentalStatus } from "../../../generated/prisma/enums.js";
 import type {
   AmenityMatch,
   IPropertyFilters,
@@ -307,6 +307,87 @@ const getMyProperties = async (
   return { properties, meta: { page, limit, total } };
 };
 
+// Landlord: Dashboard stats scoped to own data
+
+const getLandlordDashboardStats = async (landlordId: string) => {
+  const [
+    propertyCounts,
+    activeRentals,
+    pendingRequests,
+    revenue,
+    totalReviews,
+  ] = await Promise.all([
+    // Breakdown of own properties by status
+    prisma.property.groupBy({
+      by: ["status"],
+      where: { landlordId },
+      _count: { id: true },
+    }),
+
+    // Currently active leases
+    prisma.rentalRequest.count({
+      where: {
+        property: { landlordId },
+        status: RentalStatus.ACTIVE,
+      },
+    }),
+
+    // Requests awaiting landlord action
+    prisma.rentalRequest.count({
+      where: {
+        property: { landlordId },
+        status: RentalStatus.PENDING,
+      },
+    }),
+
+    // Total revenue from completed payments on own properties
+    prisma.payment.aggregate({
+      where: {
+        status: PaymentStatus.COMPLETED,
+        rentalRequest: { property: { landlordId } },
+      },
+      _sum: { amount: true },
+    }),
+
+    // Total reviews received across all own properties
+    prisma.review.count({
+      where: { property: { landlordId } },
+    }),
+  ]);
+
+  // Shape the grouped property counts into a readable object
+  const propertyStats = {
+    total: 0,
+    available: 0,
+    rented: 0,
+    unavailable: 0,
+  };
+
+  propertyCounts.forEach((group) => {
+    propertyStats.total += group._count.id;
+    if (group.status === PropertyStatus.AVAILABLE)
+      propertyStats.available = group._count.id;
+    if (group.status === PropertyStatus.RENTED)
+      propertyStats.rented = group._count.id;
+    if (group.status === PropertyStatus.UNAVAILABLE)
+      propertyStats.unavailable = group._count.id;
+  });
+
+  return {
+    properties: propertyStats,
+    rentals: {
+      active: activeRentals,
+      pendingRequests,
+    },
+    revenue: {
+      totalAmount: revenue._sum.amount ?? 0,
+    },
+    reviews: {
+      total: totalReviews,
+    },
+  };
+};
+
 export const propertyService = {
   createProperty,
   getAllProperties,
@@ -314,4 +395,5 @@ export const propertyService = {
   updateProperty,
   deleteProperty,
   getMyProperties,
+  getLandlordDashboardStats,
 };

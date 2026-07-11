@@ -7,6 +7,13 @@ import { propertyValidation } from "./property.validation.js";
 
 export const landlordPropertyRouter: Router = Router();
 
+// GET    /api/v1/landlord/stats        — Dashboard overview stats
+landlordPropertyRouter.get(
+  "/stats",
+  auth(UserRole.LANDLORD),
+  propertyController.getLandlordDashboardStats,
+);
+
 // GET    /api/v1/landlord/properties  — List own properties (supports ?status=, ?page=, ?limit=)
 landlordPropertyRouter.get(
   "/",

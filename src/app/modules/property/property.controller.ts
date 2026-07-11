@@ -136,10 +136,23 @@ const deleteProperty = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getLandlordDashboardStats = catchAsync(async (req: Request, res: Response) => {
+  const landlordId = req.user!.id;
+  const stats = await propertyService.getLandlordDashboardStats(landlordId);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Dashboard stats fetched successfully",
+    data: stats,
+  });
+});
+
 export const propertyController = {
   getAllProperties,
   getPropertyById,
   getMyProperties,
+  getLandlordDashboardStats,
   createProperty,
   updateProperty,
   deleteProperty,

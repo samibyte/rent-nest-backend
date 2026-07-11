@@ -20,5 +20,6 @@ IndexRoutes.use("/reviews", reviewRouter);
 IndexRoutes.use("/admin", adminRouter);
 IndexRoutes.use("/landlord/properties", landlordPropertyRouter);
 IndexRoutes.use("/landlord/requests", landlordRentalRouter);
+IndexRoutes.use("/landlord", landlordPropertyRouter);
 
 
