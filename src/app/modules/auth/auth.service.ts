@@ -12,7 +12,10 @@ const registerUser = async (payload: IRegisterUserPayload) => {
   const { name, email, password, phone, avatar, role } = payload;
 
   if (role !== UserRole.TENANT && role !== UserRole.LANDLORD) {
-    throw new AppError(status.BAD_REQUEST, "Invalid role. Only TENANT or LANDLORD can register.");
+    throw new AppError(
+      status.BAD_REQUEST,
+      "Invalid role. Only TENANT or LANDLORD can register.",
+    );
   }
 
   const userExists = await prisma.user.findUnique({
@@ -55,9 +58,14 @@ const registerUser = async (payload: IRegisterUserPayload) => {
 const loginUser = async (payload: ILoginUser) => {
   const { email, password } = payload;
 
-  const user = await prisma.user.findUniqueOrThrow({
+  const user = await prisma.user.findUnique({
     where: { email },
   });
+
+  console.log(user);
+  if (!user) {
+    throw new AppError(status.UNAUTHORIZED, "Invalid email or password");
+  }
 
   if (user.status === UserStatus.BANNED) {
     throw new AppError(
@@ -67,7 +75,6 @@ const loginUser = async (payload: ILoginUser) => {
   }
 
   const isPasswordMatched = await bcrypt.compare(password, user.password);
-
 
   if (!isPasswordMatched) {
     throw new AppError(status.UNAUTHORIZED, "Invalid email or password.");
@@ -84,9 +91,19 @@ const loginUser = async (payload: ILoginUser) => {
 
   const refreshToken = tokenUtils.getRefreshToken(jwtPayload);
 
+  const userData = await prisma.user.findUnique({
+    where: {
+      email: user.email || email,
+    },
+    omit: {
+      password: true,
+    },
+  });
+
   return {
     accessToken,
     refreshToken,
+    userData,
   };
 };
 

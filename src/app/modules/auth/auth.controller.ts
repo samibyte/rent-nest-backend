@@ -22,16 +22,21 @@ const registerUser = catchAsync(
 const loginUser = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const payload = req.body;
-    const tokens = await authService.loginUser(payload);
+    const result = await authService.loginUser(payload);
+    const { accessToken, refreshToken, ...rest } = result;
 
-    tokenUtils.setAccessTokenCookie(res, tokens.accessToken);
-    tokenUtils.setRefreshTokenCookie(res, tokens.refreshToken);
+    tokenUtils.setAccessTokenCookie(res, accessToken);
+    tokenUtils.setRefreshTokenCookie(res, refreshToken);
 
     sendResponse(res, {
-      success: true,
       statusCode: httpStatus.OK,
-      message: "User login successful!",
-      data: { tokens },
+      success: true,
+      message: "User logged in successfully",
+      data: {
+        accessToken,
+        refreshToken,
+        ...rest,
+      },
     });
   },
 );
