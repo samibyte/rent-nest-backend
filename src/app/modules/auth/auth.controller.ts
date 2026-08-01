@@ -8,13 +8,13 @@ import { tokenUtils } from "../../utils/token.js";
 const registerUser = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const payload = req.body;
-    const user = await authService.registerUser(payload);
+    const result = await authService.registerUser(payload);
 
     sendResponse(res, {
       success: true,
       statusCode: httpStatus.CREATED,
       message: "User registered successfully",
-      data: { user },
+      data:  result ,
     });
   },
 );

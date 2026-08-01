@@ -11,7 +11,7 @@ import { IRequestUser } from "../../interfaces/requestUser.interface.js";
 const registerUser = async (payload: IRegisterUserPayload) => {
   const { name, email, password, phone, avatar, role } = payload;
 
-  if (role !== UserRole.TENANT && role !== UserRole.LANDLORD) {
+  if ( role !== UserRole.TENANT && role !== UserRole.LANDLORD) {
     throw new AppError(
       status.BAD_REQUEST,
       "Invalid role. Only TENANT or LANDLORD can register.",
@@ -42,7 +42,18 @@ const registerUser = async (payload: IRegisterUserPayload) => {
     },
   });
 
-  const user = await prisma.user.findUnique({
+  const jwtPayload = {
+    id: createdUser.id,
+    name: createdUser.name,
+    email: createdUser.email,
+    role: createdUser.role,
+  };
+
+  const accessToken = tokenUtils.getAccessToken(jwtPayload);
+
+  const refreshToken = tokenUtils.getRefreshToken(jwtPayload);
+
+  const userData = await prisma.user.findUnique({
     where: {
       id: createdUser.id,
       email: createdUser.email || email,
@@ -52,7 +63,7 @@ const registerUser = async (payload: IRegisterUserPayload) => {
     },
   });
 
-  return user;
+  return { accessToken, refreshToken, userData };
 };
 
 const loginUser = async (payload: ILoginUser) => {

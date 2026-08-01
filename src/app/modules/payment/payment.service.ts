@@ -340,7 +340,7 @@ const getMyPayments = async (
     prisma.payment.count({ where }),
   ]);
 
-  return { payments, meta: { page, limit, total } };
+  return { payments, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
 };
 
 // Tenant: Get single payment by ID
