@@ -24,7 +24,7 @@ const createPayment = async (
   tenantId: string,
   payload: ICreatePaymentPayload,
 ) => {
-  const { rentalRequestId, successUrl, cancelUrl } = payload;
+  const { rentalRequestId } = payload;
 
   // 1. Fetch rental — include property to derive amount
   const rental = await prisma.rentalRequest.findUnique({
@@ -100,9 +100,8 @@ const createPayment = async (
       paymentId: payment.id,
     },
     success_url:
-      successUrl ||
       `${envVars.FRONTEND_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: cancelUrl || `${envVars.FRONTEND_URL}/payment/cancel`,
+    cancel_url: `${envVars.FRONTEND_URL}/payment/cancel?rentalRequestId=${rental.id}`,
   });
 
   // 7. Update transactionId in our DB to match Stripe checkout session ID
@@ -247,21 +246,25 @@ const handlerStripeWebhookEvent = async (event: Stripe.Event) => {
         return { message: `Rental Request with ID ${rentalRequestId} not found` };
       }
 
+      const isPaid = session.payment_status === "paid";
+
       await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-        await tx.rentalRequest.update({
-          where: { id: rentalRequestId },
-          data: { status: RentalStatus.ACTIVE },
-        });
+        // Only activate the rental when Stripe confirms the charge was collected.
+        // Delayed payment methods (e.g. ACH) may complete the checkout session
+        // before the funds are captured, so we guard on payment_status explicitly.
+        if (isPaid) {
+          await tx.rentalRequest.update({
+            where: { id: rentalRequestId },
+            data: { status: RentalStatus.ACTIVE },
+          });
+        }
 
         await tx.payment.update({
           where: { id: paymentId },
           data: {
             stripeEventId: event.id,
-            status:
-              session.payment_status === "paid"
-                ? PaymentStatus.COMPLETED
-                : PaymentStatus.FAILED,
-            paidAt: session.payment_status === "paid" ? new Date() : null,
+            status: isPaid ? PaymentStatus.COMPLETED : PaymentStatus.FAILED,
+            paidAt: isPaid ? new Date() : null,
             paymentGatewayData: session as any,
           },
         });
@@ -277,15 +280,21 @@ const handlerStripeWebhookEvent = async (event: Stripe.Event) => {
       const paymentId = session.metadata?.paymentId;
 
       if (paymentId) {
-        await prisma.payment.update({
-          where: { id: paymentId },
+        // Use updateMany with a PENDING guard so a COMPLETED payment
+        // (confirmed via the success webhook) is never downgraded to FAILED.
+        const updated = await prisma.payment.updateMany({
+          where: { id: paymentId, status: PaymentStatus.PENDING },
           data: {
             status: PaymentStatus.FAILED,
-            stripeEventId: event.id, // Idempotency guard for retries
+            stripeEventId: event.id,
             paymentGatewayData: session as any,
           },
         });
-        console.log(`Marked payment ${paymentId} as FAILED due to expired checkout session.`);
+        if (updated.count > 0) {
+          console.log(`Marked payment ${paymentId} as FAILED due to expired checkout session.`);
+        } else {
+          console.log(`Payment ${paymentId} was not PENDING (already COMPLETED or FAILED). Skipping expired downgrade.`);
+        }
       }
       break;
     }

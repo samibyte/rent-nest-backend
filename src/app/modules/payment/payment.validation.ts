@@ -1,9 +1,7 @@
 import { z } from "zod";
 
 const createPaymentSchema = z.object({
-  rentalRequestId: z.string().uuid("rentalRequestId must be a valid UUID"),
-  successUrl: z.string().url("successUrl must be a valid URL").optional(),
-  cancelUrl: z.string().url("cancelUrl must be a valid URL").optional(),
+  rentalRequestId: z.string().uuid("rentalRequestId must be a valid UUID")
 });
 
 const confirmPaymentSchema = z.object({
