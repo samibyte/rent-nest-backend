@@ -15,6 +15,7 @@ export interface IPropertyPayload {
   amenities: string[];
   status?: PropertyStatus;
   categoryId: string;
+  regionId?: string;
 }
 
 export type PropertySortBy = "monthlyRent" | "createdAt" | "bedrooms";
@@ -38,6 +39,7 @@ export interface IPropertyFilters {
   status?: PropertyStatus;
   sortBy?: PropertySortBy;
   sortOrder?: SortOrder;
+  regionId?: string;
 }
 
 export interface IPaginationOptions {

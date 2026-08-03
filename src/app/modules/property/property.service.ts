@@ -22,9 +22,16 @@ const category = await prisma.category.findUnique({
     throw new AppError(httpStatus.NOT_FOUND, "Category not found");
   }
 
+  if (payload.regionId) {
+    const region = await prisma.region.findUnique({ where: { id: payload.regionId } });
+    if (!region) {
+      throw new AppError(httpStatus.NOT_FOUND, "Region not found");
+    }
+  }
+
   const property = await prisma.property.create({
     data: { ...payload, landlordId },
-    include: { category: true },
+    include: { category: true, region: true },
   });
 
   return property;
@@ -43,6 +50,7 @@ const getAllProperties = async (
     minPrice,
     maxPrice,
     categoryId,
+    regionId,
     amenities,
     amenityMatch,
     bedrooms,
@@ -76,6 +84,11 @@ const getAllProperties = async (
   // --- Property type filter ---
   if (categoryId) {
     andConditions.push({ categoryId });
+  }
+
+  // --- Region filter ---
+  if (regionId) {
+    andConditions.push({ regionId });
   }
 
   // --- Bedroom filters (range takes precedence over exact match) ---
@@ -145,6 +158,7 @@ const getAllProperties = async (
       take: limit,
       include: {
         category: true,
+        region: true,
         landlord: {
           select: {
             id: true,
@@ -173,6 +187,7 @@ const getPropertyById = async (id: string) => {
     where: { id },
     include: {
       category: true,
+      region: true,
       landlord: {
         select: {
           id: true,
@@ -229,10 +244,17 @@ const updateProperty = async (
     }
   }
 
+  if (payload.regionId) {
+    const region = await prisma.region.findUnique({ where: { id: payload.regionId } });
+    if (!region) {
+      throw new AppError(httpStatus.NOT_FOUND, "Region not found");
+    }
+  }
+
   const updated = await prisma.property.update({
     where: { id },
     data: payload,
-    include: { category: true },
+    include: { category: true, region: true },
   });
 
   return updated;
@@ -295,6 +317,7 @@ const getMyProperties = async (
       take: limit,
       include: {
         category: true,
+        region: true,
         _count: {
           select: { rentalRequests: true, reviews: true },
         },
@@ -437,6 +460,18 @@ const getPublicStats = async () => {
   return cachedStats;
 };
 
+// Public: Get all distinct amenities used across properties
+const getDistinctAmenities = async (): Promise<string[]> => {
+  const rows = await prisma.property.findMany({
+    select: { amenities: true },
+    where: { amenities: { isEmpty: false } },
+  });
+
+  const all = rows.flatMap((r) => r.amenities);
+  const distinct = [...new Set(all)].sort();
+  return distinct;
+};
+
 export const propertyService = {
   createProperty,
   getAllProperties,
@@ -446,4 +481,5 @@ export const propertyService = {
   getMyProperties,
   getLandlordDashboardStats,
   getPublicStats,
+  getDistinctAmenities,
 };

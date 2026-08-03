@@ -16,6 +16,7 @@ const createPropertySchema = z.object({
   amenities: z.array(z.string()).default([]),
   status: z.nativeEnum(PropertyStatus).optional().default(PropertyStatus.AVAILABLE),
   categoryId: z.string().uuid("categoryId must be a valid UUID"),
+  regionId: z.string().uuid("regionId must be a valid UUID").optional(),
 });
 
 const updatePropertySchema = createPropertySchema.partial();

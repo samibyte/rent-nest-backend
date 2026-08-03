@@ -17,6 +17,9 @@ model Property {
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id])
 
+  regionId String?
+  region   Region? @relation(fields: [regionId], references: [id])
+
   landlordId String
   landlord   User   @relation(fields: [landlordId], references: [id])
 
@@ -29,5 +32,6 @@ model Property {
   @@index([city])
   @@index([monthlyRent])
   @@index([status])
+  @@index([regionId])
   @@map("properties")
 }

@@ -18,6 +18,7 @@ const getAllProperties = catchAsync(async (req: Request, res: Response) => {
     minPrice,
     maxPrice,
     categoryId,
+    regionId,
     amenities,
     amenityMatch,
     bedrooms,
@@ -36,6 +37,7 @@ const getAllProperties = catchAsync(async (req: Request, res: Response) => {
     minPrice: minPrice !== undefined ? Number(minPrice) : undefined,
     maxPrice: maxPrice !== undefined ? Number(maxPrice) : undefined,
     categoryId: categoryId as string | undefined,
+    regionId: regionId as string | undefined,
     // Accept comma-separated amenities: ?amenities=WiFi,AC,Parking
     amenities: amenities
       ? (amenities as string).split(",").map((a) => a.trim())
@@ -159,6 +161,17 @@ const getPublicStats = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getDistinctAmenities = catchAsync(async (_req: Request, res: Response) => {
+  const amenities = await propertyService.getDistinctAmenities();
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Distinct amenities fetched successfully",
+    data: amenities,
+  });
+});
+
 export const propertyController = {
   getAllProperties,
   getPropertyById,
@@ -168,5 +181,6 @@ export const propertyController = {
   updateProperty,
   deleteProperty,
   getPublicStats,
+  getDistinctAmenities,
 };
 

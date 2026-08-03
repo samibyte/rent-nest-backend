@@ -9,6 +9,8 @@ propertyRouter.get("/", propertyController.getAllProperties);
 // GET /api/v1/properties/public/stats  — Public cached statistics (public)
 propertyRouter.get("/public/stats", propertyController.getPublicStats);
 
+// GET /api/v1/properties/amenities  — All distinct amenities in use (public)
+propertyRouter.get("/amenities", propertyController.getDistinctAmenities);
+
 // GET /api/v1/properties/:id  — View property details (public)
 propertyRouter.get("/:id", propertyController.getPropertyById);
-

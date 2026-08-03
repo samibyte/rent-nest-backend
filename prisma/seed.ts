@@ -20,16 +20,38 @@ const categories = [
   { name: "Warehouse", description: "Large commercial or industrial storage space" },
 ];
 
+const regions = [
+  { name: "Dhaka" },
+  { name: "Chittagong" },
+  { name: "Rajshahi" },
+  { name: "Khulna" },
+  { name: "Barishal" },
+  { name: "Sylhet" },
+  { name: "Rangpur" },
+  { name: "Mymensingh" },
+];
+
 async function main() {
   console.log("🌱 Seeding categories...");
 
   for (const category of categories) {
     await prisma.category.upsert({
       where: { name: category.name },
-      update: {},           // no-op if already exists
+      update: {},
       create: category,
     });
     console.log(`  ✔ ${category.name}`);
+  }
+
+  console.log("🌱 Seeding regions...");
+
+  for (const region of regions) {
+    await prisma.region.upsert({
+      where: { name: region.name },
+      update: {},
+      create: region,
+    });
+    console.log(`  ✔ ${region.name}`);
   }
   const adminEmail = process.env.ADMIN_EMAIL || "admin@rentnest.com";
   const adminPassword = process.env.ADMIN_PASSWORD || "AdminPassword123!";

@@ -1,0 +1,11 @@
+model Region {
+  id   String @id @default(uuid())
+  name String @unique
+
+  properties Property[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("regions")
+}
