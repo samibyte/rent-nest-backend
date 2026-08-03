@@ -148,6 +148,17 @@ const getLandlordDashboardStats = catchAsync(async (req: Request, res: Response)
   });
 });
 
+const getPublicStats = catchAsync(async (req: Request, res: Response) => {
+  const stats = await propertyService.getPublicStats();
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Public statistics retrieved successfully",
+    data: stats,
+  });
+});
+
 export const propertyController = {
   getAllProperties,
   getPropertyById,
@@ -156,4 +167,6 @@ export const propertyController = {
   createProperty,
   updateProperty,
   deleteProperty,
+  getPublicStats,
 };
+

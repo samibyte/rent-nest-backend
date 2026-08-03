@@ -1,7 +1,7 @@
 import httpStatus from "http-status";
 import { prisma } from "../../lib/prisma.js";
 import AppError from "../../errorHelpers/AppError.js";
-import { PaymentStatus, PropertyStatus, RentalStatus } from "../../../generated/prisma/enums.js";
+import { PaymentStatus, PropertyStatus, RentalStatus, UserRole } from "../../../generated/prisma/enums.js";
 import type {
   AmenityMatch,
   IPropertyFilters,
@@ -388,6 +388,55 @@ const getLandlordDashboardStats = async (landlordId: string) => {
   };
 };
 
+// Public Stats (In-Memory Cache)
+let cachedStats: any = null;
+let cacheExpiry = 0;
+
+const getPublicStats = async () => {
+  const now = Date.now();
+  if (cachedStats && now < cacheExpiry) {
+    return cachedStats;
+  }
+
+  const [
+    totalProperties,
+    activeLeases,
+    totalTenants,
+    totalLandlords,
+  ] = await Promise.all([
+    prisma.property.count(),
+    prisma.rentalRequest.count({
+      where: {
+        status: RentalStatus.ACTIVE,
+      },
+    }),
+    prisma.user.count({
+      where: {
+        role: UserRole.TENANT,
+        status: "ACTIVE",
+      },
+    }),
+    prisma.user.count({
+      where: {
+        role: UserRole.LANDLORD,
+        status: "ACTIVE",
+      },
+    }),
+  ]);
+
+  cachedStats = {
+    totalProperties,
+    activeLeases,
+    totalTenants,
+    totalLandlords,
+  };
+
+  // Cache for 5 minutes
+  cacheExpiry = now + 5 * 60 * 1000;
+
+  return cachedStats;
+};
+
 export const propertyService = {
   createProperty,
   getAllProperties,
@@ -396,4 +445,5 @@ export const propertyService = {
   deleteProperty,
   getMyProperties,
   getLandlordDashboardStats,
+  getPublicStats,
 };
