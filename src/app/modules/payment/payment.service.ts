@@ -58,10 +58,60 @@ const createPayment = async (
   });
 
   if (existing) {
-    throw new AppError(
-      httpStatus.CONFLICT,
-      "A payment record already exists for this rental request",
-    );
+    if (existing.status === PaymentStatus.COMPLETED) {
+      throw new AppError(
+        httpStatus.CONFLICT,
+        "A successful payment record already exists for this rental request",
+      );
+    }
+
+    // Reuse the existing record, but generate a new Stripe checkout session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "payment",
+      line_items: [
+        {
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: rental.property.title,
+              description: rental.property.description || undefined,
+            },
+            unit_amount: Math.round(rental.property.monthlyRent * 100), // convert to cents
+          },
+          quantity: 1,
+        },
+      ],
+      metadata: {
+        rentalRequestId: rental.id,
+        paymentId: existing.id,
+      },
+      success_url:
+        `${envVars.FRONTEND_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${envVars.FRONTEND_URL}/payment/cancel?rentalRequestId=${rental.id}`,
+    });
+
+    const updatedPayment = await prisma.payment.update({
+      where: { id: existing.id },
+      data: {
+        transactionId: session.id,
+        status: PaymentStatus.PENDING,
+      },
+      include: {
+        rentalRequest: {
+          include: {
+            property: {
+              select: { id: true, title: true, city: true, monthlyRent: true },
+            },
+          },
+        },
+      },
+    });
+
+    return {
+      payment: updatedPayment,
+      checkoutUrl: session.url,
+    };
   }
 
   // 5. Create PENDING Payment in DB first with a temporary transaction ID
@@ -153,6 +203,22 @@ const confirmPayment = async (
 
   // Guard: only PENDING payments can be confirmed
   if (payment.status !== PaymentStatus.PENDING) {
+    if (payment.status === PaymentStatus.COMPLETED) {
+      // It's already confirmed (likely via webhook). Fetch details and return success.
+      return prisma.payment.findUnique({
+        where: { id: payment.id },
+        include: {
+          rentalRequest: {
+            include: {
+              property: {
+                select: { id: true, title: true, city: true, monthlyRent: true },
+              },
+            },
+          },
+        },
+      });
+    }
+
     throw new AppError(
       httpStatus.BAD_REQUEST,
       `Payment cannot be confirmed — current status is "${payment.status}"`,
