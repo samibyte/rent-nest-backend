@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client.js";
+import bcrypt from "bcryptjs";
 
 const connectionString = process.env.DATABASE_URL!;
 const adapter = new PrismaPg({ connectionString });
@@ -30,8 +31,27 @@ async function main() {
     });
     console.log(`  ✔ ${category.name}`);
   }
+  const adminEmail = process.env.ADMIN_EMAIL || "admin@rentnest.com";
+  const adminPassword = process.env.ADMIN_PASSWORD || "AdminPassword123!";
+  const saltRounds = Number(process.env.BCRYPT_SALT_ROUNDS) || 12;
+  const hashedPassword = await bcrypt.hash(adminPassword, saltRounds);
 
-  console.log(`\n✅ Done — ${categories.length} categories seeded.`);
+  console.log(`🌱 Seeding admin user (${adminEmail})...`);
+  await prisma.user.upsert({
+    where: { email: adminEmail },
+    update: {
+      password: hashedPassword,
+      name: "Admin",
+    },
+    create: {
+      email: adminEmail,
+      password: hashedPassword,
+      role: "ADMIN",
+      name: "Admin",
+    },
+  });
+
+  console.log(`\n✅ Done — ${categories.length} categories and admin user seeded.`);
 }
 
 main()
