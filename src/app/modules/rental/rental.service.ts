@@ -91,6 +91,7 @@ const getTenantRentals = async (
       skip,
       take: limit,
       include: {
+        payment: true,
         property: {
           include: {
             category: true,
@@ -112,6 +113,7 @@ const getTenantRentalById = async (id: string, tenantId: string) => {
   const rental = await prisma.rentalRequest.findUnique({
     where: { id },
     include: {
+      payment: true,
       property: {
         include: {
           category: true,

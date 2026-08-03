@@ -74,7 +74,12 @@ const getAllProperties = async (
 
   // --- Location filters ---
   if (city) {
-    andConditions.push({ city: { contains: city, mode: "insensitive" } });
+    andConditions.push({
+      OR: [
+        { city: { contains: city, mode: "insensitive" } },
+        { region: { name: { contains: city, mode: "insensitive" } } },
+      ],
+    });
   }
 
   if (area) {
@@ -139,6 +144,7 @@ const getAllProperties = async (
         { address: { contains: searchTerm, mode: "insensitive" } },
         { city: { contains: searchTerm, mode: "insensitive" } },
         { area: { contains: searchTerm, mode: "insensitive" } },
+        { region: { name: { contains: searchTerm, mode: "insensitive" } } },
       ],
     });
   }
