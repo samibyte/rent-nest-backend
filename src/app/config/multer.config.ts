@@ -1,0 +1,49 @@
+import multer from "multer";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
+import { cloudinaryUpload } from "./cloudinary.config.js";
+
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinaryUpload,
+  params: async (req, file) => {
+    const originalName = file.originalname;
+    const extension = originalName.split(".").pop()?.toLowerCase();
+
+    const fileNameWithoutExtension = originalName
+      .split(".")
+      .slice(0, -1)
+      .join(".")
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      // eslint-disable-next-line no-useless-escape
+      .replace(/[^a-z0-9\-]/g, "");
+
+    const uniqueName =
+      Math.random().toString(36).substring(2) +
+      "-" +
+      Date.now() +
+      "-" +
+      fileNameWithoutExtension;
+
+    return {
+      folder: `rent-nest/images`,
+      public_id: uniqueName,
+      resource_type: "auto",
+    };
+  },
+});
+
+export const multerUpload = multer({
+  storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // Limit to 5MB file size to prevent DoS
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedMimeTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
+    if (allowedMimeTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Invalid file type. Only JPEG, PNG, WEBP, and GIF images are allowed."));
+    }
+  },
+});

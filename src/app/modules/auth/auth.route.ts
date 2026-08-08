@@ -5,6 +5,7 @@ import { auth } from "../../middlewares/checkAuth.js";
 import { validateRequest } from "../../middlewares/validateRequest.js";
 import { authValidation } from "./auth.validation.js";
 import { UserRole } from "../../../generated/prisma/enums.js";
+import { multerUpload } from "../../config/multer.config.js";
 
 export const authRouter: Router = Router();
 
@@ -15,14 +16,15 @@ const authRateLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     success: false,
-    message: "Too many requests from this IP, please try again after 15 minutes.",
+    message:
+      "Too many requests from this IP, please try again after 15 minutes.",
   },
 });
-
 
 authRouter.post(
   "/register",
   authRateLimiter,
+  multerUpload.single("avatar"),
   validateRequest(authValidation.registerSchema),
   authController.registerUser,
 );
@@ -38,4 +40,11 @@ authRouter.get(
   "/me",
   auth(UserRole.ADMIN, UserRole.LANDLORD, UserRole.TENANT),
   authController.getMe,
+);
+
+authRouter.patch(
+  "/me/avatar",
+  auth(UserRole.ADMIN, UserRole.LANDLORD, UserRole.TENANT),
+  multerUpload.single("avatar"),
+  authController.updateAvatar,
 );

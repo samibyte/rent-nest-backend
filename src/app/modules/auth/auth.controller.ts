@@ -4,17 +4,36 @@ import { authService } from "./auth.service.js";
 import { sendResponse } from "../../shared/sendResponse.js";
 import httpStatus from "http-status";
 import { tokenUtils } from "../../utils/token.js";
+import AppError from "../../errorHelpers/AppError.js";
+import { IRegisterUserPayload } from "./auth.interface.js";
 
 const registerUser = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const payload = req.body;
-    const result = await authService.registerUser(payload);
+    const payload = (req.body ?? {}) as Record<string, unknown>;
+    const file = req.file as
+      | (Express.Multer.File & { path?: string })
+      | undefined;
+
+    const avatarFromBody =
+      typeof payload.avatar === "string" && payload.avatar.trim()
+        ? payload.avatar
+        : typeof payload.avatarUrl === "string" && payload.avatarUrl.trim()
+          ? payload.avatarUrl
+          : undefined;
+
+    const result = await authService.registerUser(
+      {
+        ...(payload as Record<string, unknown>),
+        avatar: avatarFromBody,
+      } as IRegisterUserPayload,
+      file?.path,
+    );
 
     sendResponse(res, {
       success: true,
       statusCode: httpStatus.CREATED,
       message: "User registered successfully",
-      data:  result ,
+      data: result,
     });
   },
 );
@@ -56,8 +75,27 @@ const getMe = catchAsync(
   },
 );
 
+const updateAvatar = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    if (!req.file) {
+      throw new AppError(httpStatus.BAD_REQUEST, "No file was provided.");
+    }
+
+    const file = req.file as Express.Multer.File & { path: string };
+    const result = await authService.updateAvatar(req.user!, file.path);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Avatar updated successfully",
+      data: result,
+    });
+  },
+);
+
 export const authController = {
   registerUser,
   loginUser,
   getMe,
+  updateAvatar,
 };

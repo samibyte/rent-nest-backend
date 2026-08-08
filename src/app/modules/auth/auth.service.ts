@@ -7,11 +7,15 @@ import { tokenUtils } from "../../utils/token.js";
 import AppError from "../../errorHelpers/AppError.js";
 import status from "http-status";
 import { IRequestUser } from "../../interfaces/requestUser.interface.js";
+import { deleteFileFromCloudinary } from "../../config/cloudinary.config.js";
 
-const registerUser = async (payload: IRegisterUserPayload) => {
+const registerUser = async (
+  payload: IRegisterUserPayload,
+  fileUrl?: string,
+) => {
   const { name, email, password, phone, avatar, role } = payload;
 
-  if ( role !== UserRole.TENANT && role !== UserRole.LANDLORD) {
+  if (role !== UserRole.TENANT && role !== UserRole.LANDLORD) {
     throw new AppError(
       status.BAD_REQUEST,
       "Invalid role. Only TENANT or LANDLORD can register.",
@@ -37,7 +41,7 @@ const registerUser = async (payload: IRegisterUserPayload) => {
       email,
       password: hashedPassword,
       phone,
-      avatar,
+      avatar: fileUrl ?? avatar ?? null,
       role,
     },
   });
@@ -135,8 +139,44 @@ const getMe = async (user: IRequestUser) => {
   return userExists;
 };
 
+const updateAvatar = async (user: IRequestUser, fileUrl: string) => {
+  const userExists = await prisma.user.findUnique({
+    where: {
+      id: user.id,
+    },
+  });
+
+  if (!userExists) {
+    throw new AppError(status.NOT_FOUND, "User not found");
+  }
+
+  // If there's an existing avatar URL on Cloudinary/elsewhere, delete it.
+  if (userExists.avatar) {
+    try {
+      await deleteFileFromCloudinary(userExists.avatar);
+    } catch (error) {
+      console.error("Failed to delete previous avatar:", error);
+    }
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: {
+      id: user.id,
+    },
+    data: {
+      avatar: fileUrl,
+    },
+    omit: {
+      password: true,
+    },
+  });
+
+  return updatedUser;
+};
+
 export const authService = {
   registerUser,
   loginUser,
   getMe,
+  updateAvatar,
 };

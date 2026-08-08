@@ -9,7 +9,16 @@ const registerSchema = z.object({
     .min(6, "Password must be at least 6 characters")
     .max(72, "Password cannot exceed 72 characters"),
   phone: z.string().optional(),
-  avatar: z.string().url("Avatar must be a valid URL").optional(),
+  avatar: z
+    .string()
+    .url("Avatar must be a valid URL")
+    .optional()
+    .or(z.literal("")),
+  avatarUrl: z
+    .string()
+    .url("Avatar must be a valid URL")
+    .optional()
+    .or(z.literal("")),
   role: z.enum([UserRole.TENANT, UserRole.LANDLORD], {
     error: "Role must be either TENANT or LANDLORD",
   }),

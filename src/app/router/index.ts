@@ -9,6 +9,7 @@ import { landlordRentalRouter } from "../modules/rental/landlordRental.route.js"
 import { paymentRouter } from "../modules/payment/payment.route.js";
 import { reviewRouter } from "../modules/review/review.route.js";
 import { adminRouter } from "../modules/admin/admin.route.js";
+import { uploadRouter } from "../modules/upload/upload.route.js";
 
 export const IndexRoutes: Router = Router();
 
@@ -23,5 +24,6 @@ IndexRoutes.use("/admin", adminRouter);
 IndexRoutes.use("/landlord/properties", landlordPropertyRouter);
 IndexRoutes.use("/landlord/requests", landlordRentalRouter);
 IndexRoutes.use("/landlord", landlordPropertyRouter);
+IndexRoutes.use("/upload", uploadRouter);
 
 

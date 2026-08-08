@@ -6,12 +6,13 @@ import { globalErrorHandler } from "./app/middlewares/globalErrorHandler.js";
 import { notFound } from "./app/middlewares/notFound.js";
 
 import { paymentController } from "./app/modules/payment/payment.controller.js";
+import { envVars } from "./app/config/env.js";
 
 const app: Application = express();
 
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
-  : ["http://localhost:5000"];
+const allowedOrigins = envVars.FRONTEND_URL
+  ? envVars.FRONTEND_URL.split(",").map((o) => o.trim())
+  : ["http://localhost:3000"];
 
 app.use(
   cors({
