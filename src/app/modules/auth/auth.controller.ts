@@ -6,6 +6,7 @@ import httpStatus from "http-status";
 import { tokenUtils } from "../../utils/token.js";
 import AppError from "../../errorHelpers/AppError.js";
 import { IRegisterUserPayload } from "./auth.interface.js";
+import { IRequestUser } from "../../interfaces/requestUser.interface.js";
 
 const registerUser = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -62,7 +63,7 @@ const loginUser = catchAsync(
 
 const getMe = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const user = req.user;
+    const user = req.user as IRequestUser;
 
     const result = await authService.getMe(user);
 
@@ -82,7 +83,7 @@ const updateAvatar = catchAsync(
     }
 
     const file = req.file as Express.Multer.File & { path: string };
-    const result = await authService.updateAvatar(req.user!, file.path);
+    const result = await authService.updateAvatar(req.user as IRequestUser, file.path);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,

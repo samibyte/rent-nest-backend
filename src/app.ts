@@ -1,14 +1,19 @@
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express, { Application, Request, Response } from "express";
+import passport from "passport";
 import { IndexRoutes } from "./app/router/index.js";
 import { globalErrorHandler } from "./app/middlewares/globalErrorHandler.js";
 import { notFound } from "./app/middlewares/notFound.js";
-
 import { paymentController } from "./app/modules/payment/payment.controller.js";
 import { envVars } from "./app/config/env.js";
+import { initPassport } from "./app/config/passport.config.js";
+
+initPassport();
 
 const app: Application = express();
+
+app.use(passport.initialize());
 
 const allowedOrigins = envVars.FRONTEND_URL
   ? envVars.FRONTEND_URL.split(",").map((o) => o.trim())

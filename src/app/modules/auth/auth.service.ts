@@ -174,9 +174,29 @@ const updateAvatar = async (user: IRequestUser, fileUrl: string) => {
   return updatedUser;
 };
 
+const googleOAuthLogin = async (user: { id: string; name: string; email: string; role: string }) => {
+  const jwtPayload = {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+  };
+
+  const accessToken = tokenUtils.getAccessToken(jwtPayload);
+  const refreshToken = tokenUtils.getRefreshToken(jwtPayload);
+
+  const userData = await prisma.user.findUnique({
+    where: { id: user.id },
+    omit: { password: true },
+  });
+
+  return { accessToken, refreshToken, userData };
+};
+
 export const authService = {
   registerUser,
   loginUser,
   getMe,
   updateAvatar,
+  googleOAuthLogin,
 };

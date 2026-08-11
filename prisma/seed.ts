@@ -33,7 +33,21 @@ const regionData = [
   { name: "Mymensingh" },
 ];
 
+async function cleanDb() {
+  console.log("🧹 Cleaning database...");
+  await prisma.review.deleteMany();
+  await prisma.payment.deleteMany();
+  await prisma.rentalRequest.deleteMany();
+  await prisma.property.deleteMany();
+  await prisma.user.deleteMany();
+  await prisma.category.deleteMany();
+  await prisma.region.deleteMany();
+  console.log("  ✔ All tables cleared\n");
+}
+
 async function main() {
+  await cleanDb();
+
   const saltRounds = Number(process.env.BCRYPT_SALT_ROUNDS) || 12;
 
   // ─────────────── Upsert Categories ───────────────
